@@ -382,6 +382,27 @@ impl Mosquitto {
         }
     }
 
+    /// create a new mosquitto instance, providing a client name.
+    /// Clients connecting to a broker must have unique names
+    ///
+    /// This variant sets the MQTT clean_session flag to false,
+    /// making the session on the broker persistent so messages
+    /// are not lost while the client is offline. To reset the
+    /// session state on the broker, connect to the broker once
+    /// using the same client id and the regular Mosquitto::new
+    /// function which sets the clean_session flag to true
+    pub fn new_persistent(id: &str) -> Mosquitto {
+        if INSTANCES.fetch_add(1, Ordering::SeqCst) == 0 {
+            // println!("initializing mosq");
+            unsafe { mosquitto_lib_init(); }
+        }
+        let mosq = unsafe { mosquitto_new(cs(id).as_ptr(),0,null()) };
+        Mosquitto{
+            mosq: mosq,
+            owned: true
+        }
+    }
+
     /// create a Callback object so you can listen to events.
     pub fn callbacks<'a,T>(&'a self, data: T) -> Callbacks<'a,T> {
         Callbacks::new(self,data)
